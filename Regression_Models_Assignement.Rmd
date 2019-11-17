@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-This project uses the data from the R dataset `mtcars` and aims at exploring the relartionship between a set of variables and the outcome variable of miles per gallons (MPG). More precisely, we want to know which of automatic or manual transmission is better for MPG and to quantify the difference between the two categories of cars.
+This project exploits data from the R dataset `mtcars` and aims at exploring the relationship between a set of variables and the outcome variable of miles per gallons (MPG). More precisely, we want to know which of automatic or manual transmission is better for MPG and to quantify the difference between the two categories of cars. We will then explore further fits as an application of the course material.
 
 # Data Processing
 
@@ -21,7 +21,7 @@ data(mtcars)
 head(mtcars)
 ```
 
-From the help (`?mtcars`), we get that the data consists of a data frame with 32 observations on 11 (numeric) variables:
+From the help page of the dataset (`?mtcars`), we get that the data consists of a data frame with 32 observations on 11 (numeric) variables:
 
 - mpg :	Miles/(US) gallon
 - cyl :	Number of cylinders
@@ -56,5 +56,72 @@ g2 = ggplot(mtcars, aes(x=mpg, fill=am)) + geom_density(alpha=0.5)
 g2 = g2 + coord_flip() + theme(legend.position="none") + labs(title="\n Density")
 grid.arrange(g1,g2,ncol=2,nrow=1,widths=c(4,2))
 ```
+
+
+# Data fitting
+
+We can do a regression of MPG with the transmission taken as a factor variable. The regression is done as follows:
+```{r regression, echo=TRUE}
+fit <- lm(mpg~factor(am), data=mtcars)
+summary(fit)
+```
+where we can see that the average MPG is 17.147 for automatic transmission and 17.147+7.245=24.392 for manual transmission. This suggests, as the boxplot, that **a manual transmission allows more milage per gallon of gas**. The fit also gives us the standard error for each category of cars, so we have:
+
+- $MPG(A) = 17.147 \pm 1.125$ miles per gallon
+- $MPG(M) = 24.392 \pm 1.764$ miles per gallon
+
+The residual standard error is 4.902 while $R^2$ = 0.3598. Since this value is far from 1, this suggests that a better fit can be obtained (as we will explore after).
+
+In addition, we can perform a T-test on the data:
+```{r ttest, echo=TRUE}
+t.test(mpg~factor(am),data=mtcars)
+```
+We thus get that the difference in the means of samples A and M is different from zero, the null hypothesis ("difference equals zero") being rejected with a p-value less than 1%. This is a clear indication that the transmission plays a significant role in predicting MPG values.
+
+
+# Exploring further fits
+
+Let us try to improve the fit since the $R^2$ value was pretty low. We first look into the correlations between the different variables at our disposal, excluding the `am` variable:
+```{r correl, echo=TRUE, cache=TRUE}
+require(GGally)
+ggpairs(mtcars[, !(names(mtcars) %in% c("am"))] , lower=list(continuous="smooth"))
+```
+
+  
+From the first row we can see that `mpg` is strongly anti-correlated with `cyl`, `disp` and `wt`, respectively the number of cylinders, the displacement of the cylinders and the weight of the car. Let us first include cylinders into the linear regression:
+```{r fit2, echo=TRUE}
+fit2 <- lm(mpg ~ factor(am) + cyl, data=mtcars)
+summary(fit2)
+```
+As we can see, considering the number of cylinders increased the quality of the fit significantly, with $R^2$ = 0.759 now. We now have a linear dependence with `cyl` described by the slope of -2.5010 MPG units / cylinder. The sign can be understood from the fact that the more cylinders a car motor has, the more consumption there is from this motor (in general).
+
+Let us try to include the 2 other variables into a new fit:
+```{r fit3, echo=TRUE}
+fit3 <- lm(mpg ~ factor(am) + cyl + disp + wt, data=mtcars)
+summary(fit3)
+```
+As we can see the fit increased in quality again, but the low value of the slope for the variable `disp` and it's high probability of equating zero, as suggested by the t-value probability which is very large. Hence we can remove this variable from the fit:
+```{r fit4, echo=TRUE}
+fit4 <- lm(mpg ~ factor(am) + cyl + wt, data=mtcars)
+summary(fit4)
+```
+We get comforted in our choice by looking at $R^2$ which almost did not change, going from 0.8327 to 0.8303, and by the fact that the standard error got reduced, going from 2.642 to 2.612. This shows that `disp` was a redundant variable here.
+
+
+# Fitting MPG against all variables
+
+Let us try a last fit in which we ignore our last conclusion and fit MPG against all the other variables:
+```{r fit5, echo=TRUE}
+par(mfrow=c(2,2))
+fit5 <- lm(mpg ~ ., data=mtcars)
+summary(fit5)
+plot(fit5)
+```
+
+As we can see the $R^2$ value increased to 0.869, but not so much compared to our last fit. The standard deviation also increased, which has a negative impact on predictions from the model. Finally, we can see from the residual plots that this dataset does not seem to contain outliers.
+
+# Conclusions
+
+We have analysed a car dataset called `mtcars` and did a first regression against a categorical variable which is the transmission type. We have shown that a clear relation exists, meaning that transmission is definitely an important discriminant in the milage per gallon ratio of a car. We then included few other parameters and analysed how the regression improved, with some variables being more useful than others (typically those which are orthogonal to each other). Finally, we included all the variables in the linear regression and saw that such an expensive fit is not so relevant in terms of simplicity and quality of the regression.
 
 
