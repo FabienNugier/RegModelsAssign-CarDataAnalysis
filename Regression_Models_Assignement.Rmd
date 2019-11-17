@@ -1,0 +1,60 @@
+---
+title: "Regression Models Assignment - Car data analysis"
+author: "Fabien Nugier"
+date: "11/17/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+This project uses the data from the R dataset `mtcars` and aims at exploring the relartionship between a set of variables and the outcome variable of miles per gallons (MPG). More precisely, we want to know which of automatic or manual transmission is better for MPG and to quantify the difference between the two categories of cars.
+
+# Data Processing
+
+We load the data and display its first rows:
+```{r loading, echo=TRUE}
+data(mtcars)
+head(mtcars)
+```
+
+From the help (`?mtcars`), we get that the data consists of a data frame with 32 observations on 11 (numeric) variables:
+
+- mpg :	Miles/(US) gallon
+- cyl :	Number of cylinders
+- disp :	Displacement (cu.in.)
+- hp :	Gross horsepower
+- drat :	Rear axle ratio
+- wt :	Weight (1000 lbs)
+- qsec :	1/4 mile time
+- vs :	Engine (0 = V-shaped, 1 = straight)
+- am :	Transmission (0 = automatic, 1 = manual)
+- gear :	Number of forward gears
+- carb :	Number of carburetors
+
+The two columns that interest us the most are `mpg` and `am`. Let us display summary information about them:
+```{r summary, echo=TRUE}
+summary(mtcars[,c("mpg","am")])
+```
+
+Let us make the `am` variable a factor variable:
+```{r factoram, echo=TRUE}
+mtcars$am <- factor(mtcars$am, levels=c(0,1), labels=c("A","M"))
+```
+and we can plot the MPG output agains the transmission type as a box plot:
+```{r boxplot, echo=TRUE, fig.align='center', out.width='80%'}
+library(ggplot2)
+library(gridExtra)
+g1 = ggplot(data=mtcars, aes(x=am,y=mpg, fill=am)) + geom_boxplot()
+g1 = g1 + scale_x_discrete("Transmission") + scale_y_continuous("Miles / gallon")
+g1 = g1 + ggtitle("Box plot of Miles / Gallon (MPG) ratio \n against Transmission Type.")
+g1 = g1 + theme(legend.position=c(0.95,0.3), legend.justification=c(1,1)) 
+g2 = ggplot(mtcars, aes(x=mpg, fill=am)) + geom_density(alpha=0.5)
+g2 = g2 + coord_flip() + theme(legend.position="none") + labs(title="\n Density")
+grid.arrange(g1,g2,ncol=2,nrow=1,widths=c(4,2))
+```
+
+
